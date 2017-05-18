@@ -20,7 +20,7 @@ static NSString *tokenRefreshCallback = @"FCMPlugin.onTokenRefreshReceived";
 static FCMPlugin *fcmPluginInstance;
 
 + (FCMPlugin *) fcmPlugin {
-    
+
     return fcmPluginInstance;
 }
 
@@ -30,16 +30,30 @@ static FCMPlugin *fcmPluginInstance;
 		[AppDelegate register_for_notifications];
     fcmPluginInstance = self;
     [self.commandDelegate runInBackground:^{
-        
+
         CDVPluginResult* pluginResult = nil;
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
-    
+
+}
+
+- (void) convertDynamicLink:(NSString *)path
+{
+  NSLog(path);
+  // BOOL handled = [[FIRDynamicLinks dynamicLinks]
+  //                   path
+  //                           completion:^(FIRDynamicLink * _Nullable dynamicLink,
+  //                                        NSError * _Nullable error) {
+  //
+  //   if (dynamicLink) {
+  //     NSString *matchType = (dynamicLink.matchConfidence == FIRDynamicLinkMatchConfidenceWeak) ? @"Weak" : @"Strong";
+  //   }
+
 }
 
 // GET TOKEN //
-- (void) getToken:(CDVInvokedUrlCommand *)command 
+- (void) getToken:(CDVInvokedUrlCommand *)command
 {
     NSLog(@"get Token");
     [self.commandDelegate runInBackground:^{
@@ -51,7 +65,7 @@ static FCMPlugin *fcmPluginInstance;
 }
 
 // UN/SUBSCRIBE TOPIC //
-- (void) subscribeToTopic:(CDVInvokedUrlCommand *)command 
+- (void) subscribeToTopic:(CDVInvokedUrlCommand *)command
 {
     NSString* topic = [command.arguments objectAtIndex:0];
     NSLog(@"subscribe To Topic %@", topic);
@@ -63,7 +77,7 @@ static FCMPlugin *fcmPluginInstance;
     }];
 }
 
-- (void) unsubscribeFromTopic:(CDVInvokedUrlCommand *)command 
+- (void) unsubscribeFromTopic:(CDVInvokedUrlCommand *)command
 {
     NSString* topic = [command.arguments objectAtIndex:0];
     NSLog(@"unsubscribe From Topic %@", topic);
@@ -78,13 +92,13 @@ static FCMPlugin *fcmPluginInstance;
 - (void) registerNotification:(CDVInvokedUrlCommand *)command
 {
     NSLog(@"view registered for notifications");
-    
+
     notificatorReceptorReady = YES;
     NSData* lastPush = [AppDelegate getLastPush];
     if (lastPush != nil) {
         [FCMPlugin.fcmPlugin notifyOfMessage:lastPush];
     }
-    
+
     CDVPluginResult* pluginResult = nil;
     pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
@@ -95,7 +109,7 @@ static FCMPlugin *fcmPluginInstance;
     NSString *JSONString = [[NSString alloc] initWithBytes:[payload bytes] length:[payload length] encoding:NSUTF8StringEncoding];
     NSString * notifyJS = [NSString stringWithFormat:@"%@(%@);", notificationCallback, JSONString];
     NSLog(@"stringByEvaluatingJavaScriptFromString %@", notifyJS);
-    
+
     if ([self.webView respondsToSelector:@selector(stringByEvaluatingJavaScriptFromString:)]) {
         [(UIWebView *)self.webView stringByEvaluatingJavaScriptFromString:notifyJS];
     } else {
@@ -107,7 +121,7 @@ static FCMPlugin *fcmPluginInstance;
 {
     NSString * notifyJS = [NSString stringWithFormat:@"%@('%@');", tokenRefreshCallback, token];
     NSLog(@"stringByEvaluatingJavaScriptFromString %@", notifyJS);
-    
+
     if ([self.webView respondsToSelector:@selector(stringByEvaluatingJavaScriptFromString:)]) {
         [(UIWebView *)self.webView stringByEvaluatingJavaScriptFromString:notifyJS];
     } else {
@@ -129,6 +143,23 @@ static FCMPlugin *fcmPluginInstance;
         [FCMPlugin.fcmPlugin notifyOfMessage:lastPush];
     }
     appInForeground = YES;
+}
+
+- (void)onDynamicLink:(CDVInvokedUrlCommand *)command {
+    NSLog(@"onDynamicLink");
+    self.dynamicLinkCallbackId = command.callbackId;
+}
+
+- (void)sendDynamicLinkData:(NSDictionary *)data {
+    NSLog(@"INSIDE");
+    NSLog(self.dynamicLinkCallbackId);
+    if (self.dynamicLinkCallbackId) {
+        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:data];
+        [pluginResult setKeepCallbackAsBool:YES];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:self.dynamicLinkCallbackId];
+    } else {
+        self.cachedInvitation = data;
+    }
 }
 
 @end

@@ -18,6 +18,8 @@
 
 @import FirebaseInstanceID;
 @import FirebaseMessaging;
+//@import GoogleSignIn;
+// @import FirebaseDynamicLinks;
 
 // Implement UNUserNotificationCenterDelegate to receive display notification via APNS for devices
 // running iOS 10 and above. Implement FIRMessagingDelegate to receive data message via FCM for
@@ -32,7 +34,7 @@
 #define NSFoundationVersionNumber_iOS_9_x_Max 1299
 #endif
 
-@implementation AppDelegate (MCPlugin)
+@implementation AppDelegate (FCMPlugin)
 
 static NSData *lastPush;
 NSString *const kGCMMessageIDKey = @"gcm.message_id";
@@ -68,14 +70,14 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
             | UNAuthorizationOptionBadge;
             [[UNUserNotificationCenter currentNotificationCenter] requestAuthorizationWithOptions:authOptions completionHandler:^(BOOL granted, NSError * _Nullable error) {
             }];
-            
+
             // For iOS 10 display notification (sent via APNS)
             [UNUserNotificationCenter currentNotificationCenter].delegate = self;
             // For iOS 10 data message (sent via FCM)
             [FIRMessaging messaging].remoteMessageDelegate = self;
 #endif
         }
-        
+
         [[UIApplication sharedApplication] registerForRemoteNotifications];
         // [END register_for_notifications]
     }
@@ -101,17 +103,17 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
     if (userInfo[kGCMMessageIDKey]) {
         NSLog(@"Message ID 1: %@", userInfo[kGCMMessageIDKey]);
     }
-    
+
     // Print full message.
     NSLog(@"%@", userInfo);
-    
+
     NSError *error;
     NSDictionary *userInfoMutable = [userInfo mutableCopy];
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:userInfoMutable
                                                        options:0
                                                          error:&error];
     [FCMPlugin.fcmPlugin notifyOfMessage:jsonData];
-    
+
     // Change this to your preferred presentation option
     completionHandler(UNNotificationPresentationOptionNone);
 }
@@ -124,16 +126,16 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
     if (userInfo[kGCMMessageIDKey]) {
         NSLog(@"Message ID 2: %@", userInfo[kGCMMessageIDKey]);
     }
-    
+
     // Print full message.
     NSLog(@"aaa%@", userInfo);
-    
+
     NSError *error;
     NSDictionary *userInfoMutable = [userInfo mutableCopy];
-    
+
 
         NSLog(@"New method with push callback: %@", userInfo);
-        
+
         [userInfoMutable setValue:@(YES) forKey:@"wasTapped"];
         NSData *jsonData = [NSJSONSerialization dataWithJSONObject:userInfoMutable
                                                            options:0
@@ -141,20 +143,20 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
         NSLog(@"APP WAS CLOSED DURING PUSH RECEPTION Saved data: %@", jsonData);
         lastPush = jsonData;
 
-    
+
     completionHandler();
 }
 #else
 // [START receive_message in background iOS < 10]
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
     NSLog(@"Message ID: %@", userInfo[@"gcm.message_id"]);
-    
+
     NSError *error;
     NSDictionary *userInfoMutable = [userInfo mutableCopy];
-    
+
     if (application.applicationState != UIApplicationStateActive) {
         NSLog(@"New method with push callback: %@", userInfo);
-        
+
         [userInfoMutable setValue:@(YES) forKey:@"wasTapped"];
         NSData *jsonData = [NSJSONSerialization dataWithJSONObject:userInfoMutable
                                                            options:0
@@ -179,9 +181,9 @@ fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler
     // Pring full message.
     NSLog(@"%@", userInfo);
     NSError *error;
-    
+
     NSDictionary *userInfoMutable = [userInfo mutableCopy];
-    
+
 	//USER NOT TAPPED NOTIFICATION
     if (application.applicationState == UIApplicationStateActive) {
         [userInfoMutable setValue:@(NO) forKey:@"wasTapped"];
@@ -219,15 +221,15 @@ fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler
 // [START connect_to_fcm]
 - (void)connectToFcm
 {
-    
+
     // Won't connect since there is no token
     if (![[FIRInstanceID instanceID] token]) {
         return;
     }
-    
+
     // Disconnect previous FCM connection if it exists.
     [[FIRMessaging messaging] disconnect];
-    
+
     [[FIRMessaging messaging] connectWithCompletion:^(NSError * _Nullable error) {
         if (error != nil) {
             NSLog(@"Unable to connect to FCM. %@", error);
@@ -262,6 +264,61 @@ fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler
     NSData* returnValue = lastPush;
     lastPush = nil;
     return returnValue;
+}
+
+// [START continueuseractivity]
+- (BOOL)application:(UIApplication *)application
+    continueUserActivity:(NSUserActivity *)userActivity
+      restorationHandler:(void (^)(NSArray *))restorationHandler {
+    NSLog(@"application:continueUserActivity");
+    
+    FCMPlugin* dl = [self.viewController getCommandInstance:@"FCMPlugin"];
+
+    BOOL handled = [[FIRDynamicLinks dynamicLinks]
+                     handleUniversalLink:userActivity.webpageURL
+                              completion:^(FIRDynamicLink * _Nullable dynamicLink,
+                                           NSError * _Nullable error) {
+
+      if (dynamicLink) {
+        NSString *matchType = (dynamicLink.matchConfidence == FIRDynamicLinkMatchConfidenceWeak) ? @"Weak" : @"Strong";
+
+        [dl sendDynamicLinkData:@{
+           @"deepLink": dynamicLink.url.absoluteString,
+           @"matchType": matchType
+         }];
+      }
+  }];
+
+  if(!handled){
+      [dl sendDynamicLinkData:@{
+          @"deepLink": userActivity.webpageURL.absoluteURL.absoluteString,
+          @"matchType": @"None"
+          }];
+  }
+
+  return handled;
+}
+// [END continueuseractivity]
+
+// [START openurl]
+- (BOOL)application:(nonnull UIApplication *)application
+            openURL:(nonnull NSURL *)url
+            options:(nonnull NSDictionary<NSString *, id> *)options {
+    NSLog(@"application:openUrl:options");
+  FCMPlugin* dl = [self.viewController getCommandInstance:@"FCMPlugin"];
+
+//  if ([dl isSigningIn]) {
+//    dl.isSigningIn = NO;
+//
+//    return [[GIDSignIn sharedInstance] handleURL:url
+//             sourceApplication:options[UIApplicationOpenURLOptionsSourceApplicationKey]
+//                    annotation:options[UIApplicationOpenURLOptionsAnnotationKey]];
+//  } else {
+    return [self application:application
+                     openURL:url
+           sourceApplication:options[UIApplicationOpenURLOptionsSourceApplicationKey]
+                  annotation:options[UIApplicationOpenURLOptionsAnnotationKey]];
+//  }
 }
 
 

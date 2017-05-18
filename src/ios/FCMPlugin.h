@@ -16,5 +16,10 @@
 - (void)notifyOfTokenRefresh:(NSString*) token;
 - (void)appEnterBackground;
 - (void)appEnterForeground;
+- (void)onDynamicLink:(CDVInvokedUrlCommand *)command;
+- (void)sendDynamicLinkData:(NSDictionary*)data;
+
+@property (nonatomic, copy) NSString *dynamicLinkCallbackId;
+@property NSDictionary* cachedInvitation;
 
 @end
