@@ -38,6 +38,18 @@ static FCMPlugin *fcmPluginInstance;
     
 }
 
+- (void) onDynamicLink:(CDVInvokedUrlCommand *)command
+{
+    NSLog(@"onDynamicLink");
+    if (self.cachedInvitation) {
+        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.cachedInvitation] callbackId:command.callbackId];
+        self.cachedInvitation = nil;
+    } else {
+        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Not launched by invitation"] callbackId:command.callbackId];
+    }
+}
+
+
 // GET TOKEN //
 - (void) getToken:(CDVInvokedUrlCommand *)command 
 {
