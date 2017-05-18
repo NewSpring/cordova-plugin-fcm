@@ -26,7 +26,7 @@
     <keywords>cordova, fcm, push, plugin</keywords>
 
     <info>Cordova FCM plugin</info>
-
+	<preference name="APP_DOMAIN" />
     <js-module src="www/FCMPlugin.js" name="FCMPlugin">
 	<clobbers target="FCMPlugin" />
     </js-module>
@@ -58,8 +58,8 @@
 				<action android:name="android.intent.action.VIEW"/>
 				<category android:name="android.intent.category.DEFAULT"/>
 				<category android:name="android.intent.category.BROWSABLE"/>
-				<data android:host="rm2y5.app.goo.gl" android:scheme="http"/>
-				<data android:host="rm2y5.app.goo.gl" android:scheme="https"/>
+				<data android:host="$APP_DOMAIN" android:scheme="http"/>
+				<data android:host="$APP_DOMAIN" android:scheme="https"/>
 			</intent-filter>
 		</config-file>
 		<config-file target="res/xml/config.xml" parent="/*">
