@@ -10,7 +10,39 @@
 @interface FCMPlugin () {}
 @end
 
-@implementation FCMPlugin
+@implementation FCMPlugin {
+    NSString *_sendInvitationCallbackId;
+}
+
+- (void)pluginInitialize {
+    if(![FIRApp defaultApp]) {
+        [FIRApp configure];
+    }
+
+    [GIDSignIn sharedInstance].clientID = [FIRApp defaultApp].options.clientID;
+    [GIDSignIn sharedInstance].uiDelegate = self;
+    [GIDSignIn sharedInstance].delegate = self;
+}
+
+- (void)onDynamicLink:(CDVInvokedUrlCommand *)command {
+    self.dynamicLinkCallbackId = command.callbackId;
+
+    if (self.cachedInvitation) {
+        [self sendDynamicLinkData:self.cachedInvitation];
+
+        self.cachedInvitation = nil;
+    }
+}
+
+- (void)sendDynamicLinkData:(NSDictionary *)data {
+    if (self.dynamicLinkCallbackId) {
+        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:data];
+        [pluginResult setKeepCallbackAsBool:YES];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:self.dynamicLinkCallbackId];
+    } else {
+        self.cachedInvitation = data;
+    }
+}
 
 static BOOL notificatorReceptorReady = NO;
 static BOOL appInForeground = YES;
@@ -36,17 +68,6 @@ static FCMPlugin *fcmPluginInstance;
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
     
-}
-
-- (void) onDynamicLink:(CDVInvokedUrlCommand *)command
-{
-    NSLog(@"onDynamicLink");
-    if (self.cachedInvitation) {
-        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.cachedInvitation] callbackId:command.callbackId];
-        self.cachedInvitation = nil;
-    } else {
-        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Not launched by invitation"] callbackId:command.callbackId];
-    }
 }
 
 
@@ -141,6 +162,33 @@ static FCMPlugin *fcmPluginInstance;
         [FCMPlugin.fcmPlugin notifyOfMessage:lastPush];
     }
     appInForeground = YES;
+}
+
+#pragma mark GIDSignInDelegate
+- (void)signIn:(GIDSignIn *)signIn didSignInForUser:(GIDGoogleUser *)user withError:(NSError *)error {
+    if (error == nil) {
+
+    } else {
+        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:@{
+            @"type": @"signinfailure",
+            @"data": @{
+                    @"code": @(error.code),
+                    @"message": error.description
+            }
+        }];
+
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:_sendInvitationCallbackId];
+    }
+}
+
+- (void)signIn:(GIDSignIn *)signIn presentViewController:(UIViewController *)viewController {
+    self.isSigningIn = YES;
+
+    [self.viewController presentViewController:viewController animated:YES completion:nil];
+}
+
+- (void)signIn:(GIDSignIn *)signIn dismissViewController:(UIViewController *)viewController {
+    [self.viewController dismissViewControllerAnimated:YES completion:nil];
 }
 
 @end

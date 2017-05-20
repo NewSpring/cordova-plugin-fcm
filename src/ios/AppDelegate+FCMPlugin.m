@@ -18,6 +18,10 @@
 
 @import FirebaseInstanceID;
 @import FirebaseMessaging;
+@import FirebaseInvites;
+@import FirebaseDynamicLinks;
+
+
 
 // Implement UNUserNotificationCenterDelegate to receive display notification via APNS for devices
 // running iOS 10 and above. Implement FIRMessagingDelegate to receive data message via FCM for
@@ -32,7 +36,7 @@
 #define NSFoundationVersionNumber_iOS_9_x_Max 1299
 #endif
 
-@implementation AppDelegate (MCPlugin)
+@implementation AppDelegate (FirebasePlugin)
 
 static NSData *lastPush;
 NSString *const kGCMMessageIDKey = @"gcm.message_id";
@@ -255,7 +259,80 @@ fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler
     [FCMPlugin.fcmPlugin appEnterBackground];
     NSLog(@"Disconnected from FCM");
 }
-// [END disconnect_from_fcm]
+// [START openurl]
+- (BOOL)application:(nonnull UIApplication *)application
+            openURL:(nonnull NSURL *)url
+            options:(nonnull NSDictionary<NSString *, id> *)options {
+  FCMPlugin* dl = [self.viewController getCommandInstance:@"FirebaseDynamicLinks"];
+
+    return [self application:application
+                     openURL:url
+           sourceApplication:options[UIApplicationOpenURLOptionsSourceApplicationKey]
+                  annotation:options[UIApplicationOpenURLOptionsAnnotationKey]];
+}
+
+- (BOOL)application:(UIApplication *)application
+            openURL:(NSURL *)url
+  sourceApplication:(NSString *)sourceApplication
+         annotation:(id)annotation {
+  FCMPlugin* dl = [self.viewController getCommandInstance:@"FirebaseDynamicLinks"];
+  // Handle App Invite requests
+  FIRReceivedInvite *invite =
+      [FIRInvites handleURL:url sourceApplication:sourceApplication annotation:annotation];
+  if (invite) {
+    NSString *matchType = (invite.matchType == FIRReceivedInviteMatchTypeWeak) ? @"Weak" : @"Strong";
+    [dl sendDynamicLinkData:@{
+                             @"deepLink": invite.deepLink,
+                             @"invitationId": invite.inviteId,
+                             @"matchType": matchType
+                           }];
+    return YES;
+  }
+
+  FIRDynamicLink *dynamicLink =
+    [[FIRDynamicLinks dynamicLinks] dynamicLinkFromCustomSchemeURL:url];
+  if (dynamicLink) {
+      NSString *matchType = (dynamicLink.matchConfidence == FIRDynamicLinkMatchConfidenceWeak) ? @"Weak" : @"Strong";
+      [dl sendDynamicLinkData:@{
+                               @"deepLink": dynamicLink.url.absoluteString,
+                               @"matchType": matchType
+                             }];
+
+      return YES;
+  }
+
+    // call super
+    return [self application:application
+                     openURL:url
+           sourceApplication:sourceApplication
+                  annotation:annotation];
+}
+// [END openurl]
+
+// [START continueuseractivity]
+- (BOOL)application:(UIApplication *)application
+    continueUserActivity:(NSUserActivity *)userActivity
+      restorationHandler:(void (^)(NSArray *))restorationHandler {
+    FCMPlugin* dl = [self.viewController getCommandInstance:@"FirebaseDynamicLinks"];
+
+    BOOL handled = [[FIRDynamicLinks dynamicLinks]
+                     handleUniversalLink:userActivity.webpageURL
+                              completion:^(FIRDynamicLink * _Nullable dynamicLink,
+                                           NSError * _Nullable error) {
+
+      if (dynamicLink) {
+        NSString *matchType = (dynamicLink.matchConfidence == FIRDynamicLinkMatchConfidenceWeak) ? @"Weak" : @"Strong";
+
+        [dl sendDynamicLinkData:@{
+           @"deepLink": dynamicLink.url.absoluteString,
+           @"matchType": matchType
+         }];
+      }
+  }];
+
+  return handled;
+}
+// [END continueuseractivity]
 
 +(NSData*)getLastPush
 {
