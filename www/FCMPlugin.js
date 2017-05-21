@@ -41,6 +41,10 @@ FCMPlugin.prototype.ready = function(){
 	exec(function(result){ console.log("FCMPlugin Ready OK") }, function(result){ console.log("FCMPlugin Ready ERROR") }, "FCMPlugin",'ready',[]);
 }
 
+FCMPlugin.prototype.onDynamicLink = function(onSuccess, onError) {
+    exec(onSuccess, onError, "FCMPlugin", "onDynamicLink", []);
+};
+
 
 
 var fcmPlugin = new FCMPlugin();

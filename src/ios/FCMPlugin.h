@@ -1,10 +1,10 @@
 #import <UIKit/UIKit.h>
 #import <Cordova/CDVPlugin.h>
 
+#import "Firebase/Firebase.h"
+
 @interface FCMPlugin : CDVPlugin
-{
-    //NSString *notificationCallBack;
-}
+
 
 + (FCMPlugin *) fcmPlugin;
 - (void)ready:(CDVInvokedUrlCommand*)command;
@@ -16,5 +16,12 @@
 - (void)notifyOfTokenRefresh:(NSString*) token;
 - (void)appEnterBackground;
 - (void)appEnterForeground;
+- (void)onDynamicLink:(CDVInvokedUrlCommand *)command;
+- (void)sendDynamicLinkData:(NSDictionary*)data;
+
+@property (nonatomic, copy) NSString *dynamicLinkCallbackId;
+@property (nonatomic, assign) BOOL isSigningIn;
+@property NSDictionary* cachedInvitation;
+
 
 @end

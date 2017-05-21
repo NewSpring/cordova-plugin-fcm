@@ -10,6 +10,12 @@
 #import <objc/runtime.h>
 #import <Foundation/Foundation.h>
 
+// import CULPlugin so we can combine dynamic links
+// and universal links
+#import "AppDelegate+CULPlugin.h"
+#import "CULPlugin.h"
+static NSString *const PLUGIN_NAME = @"UniversalLinks";
+
 #import "Firebase.h"
 
 #if defined(__IPHONE_10_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_10_0
@@ -18,6 +24,8 @@
 
 @import FirebaseInstanceID;
 @import FirebaseMessaging;
+@import FirebaseDynamicLinks;
+
 
 // Implement UNUserNotificationCenterDelegate to receive display notification via APNS for devices
 // running iOS 10 and above. Implement FIRMessagingDelegate to receive data message via FCM for
@@ -32,7 +40,7 @@
 #define NSFoundationVersionNumber_iOS_9_x_Max 1299
 #endif
 
-@implementation AppDelegate (MCPlugin)
+@implementation AppDelegate (FirebasePlugin)
 
 static NSData *lastPush;
 NSString *const kGCMMessageIDKey = @"gcm.message_id";
@@ -255,7 +263,88 @@ fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler
     [FCMPlugin.fcmPlugin appEnterBackground];
     NSLog(@"Disconnected from FCM");
 }
-// [END disconnect_from_fcm]
+
+// [START openurl]
+- (BOOL)application:(nonnull UIApplication *)application
+            openURL:(nonnull NSURL *)url
+            options:(nonnull NSDictionary<NSString *, id> *)options {
+    NSLog(@"%@", url);
+    return [self application:application
+                     openURL:url
+           sourceApplication:options[UIApplicationOpenURLOptionsSourceApplicationKey]
+                  annotation:options[UIApplicationOpenURLOptionsAnnotationKey]];
+}
+
+- (BOOL)application:(UIApplication *)application
+            openURL:(NSURL *)url
+  sourceApplication:(NSString *)sourceApplication
+         annotation:(id)annotation {
+    NSLog(@"%@", url);
+  FCMPlugin* dl = [self.viewController getCommandInstance:@"FCMPlugin"];
+
+  FIRDynamicLink *dynamicLink =
+    [[FIRDynamicLinks dynamicLinks] dynamicLinkFromCustomSchemeURL:url];
+  if (dynamicLink) {
+      NSString *matchType = (dynamicLink.matchConfidence == FIRDynamicLinkMatchConfidenceWeak) ? @"Weak" : @"Strong";
+      [dl sendDynamicLinkData:@{
+                               @"deepLink": dynamicLink.url.absoluteString,
+                               @"matchType": matchType
+                             }];
+
+      return YES;
+  }
+
+    // call super
+    return [self application:application
+                     openURL:url
+           sourceApplication:sourceApplication
+                  annotation:annotation];
+}
+// [END openurl]
+
+// [START continueuseractivity]
+- (BOOL)application:(UIApplication *)application
+    continueUserActivity:(NSUserActivity *)userActivity
+      restorationHandler:(void (^)(NSArray *))restorationHandler {
+    NSLog(@"%@", userActivity.webpageURL);
+    NSLog(@"FCM links");
+    
+    // ignore activities that are not for Universal Links
+    if (![userActivity.activityType isEqualToString:NSUserActivityTypeBrowsingWeb] || userActivity.webpageURL == nil) {
+        return YES;
+    }
+    
+    // get instance of the plugin and let it handle the userActivity object
+    CULPlugin *plugin = [self.viewController getCommandInstance:PLUGIN_NAME];
+    FCMPlugin* dl = [self.viewController getCommandInstance:@"FCMPlugin"];
+    
+    // send to lookup from firebase
+    BOOL handled = [[FIRDynamicLinks dynamicLinks]
+                     handleUniversalLink:userActivity.webpageURL
+                              completion:^(FIRDynamicLink * _Nullable dynamicLink,
+                                           NSError * _Nullable error) {
+
+      if (dynamicLink) {
+        NSString *matchType = (dynamicLink.matchConfidence == FIRDynamicLinkMatchConfidenceWeak) ? @"Weak" : @"Strong";
+
+        [dl sendDynamicLinkData:@{
+           @"deepLink": dynamicLink.url.absoluteString,
+           @"matchType": matchType
+         }];
+      }
+  }];
+    
+    if (!handled) {
+        // also allow lookup in universal links plugin
+        [plugin handleUserActivity:userActivity];
+
+    }
+    
+  return handled;
+}
+// [END continueuseractivity]
+
+
 
 +(NSData*)getLastPush
 {
