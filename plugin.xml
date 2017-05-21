@@ -64,9 +64,9 @@
 		</config-file>
 		<config-file target="res/xml/config.xml" parent="/*">
 			<feature name="FCMPlugin" >
-					<param name="android-package" value="com.gae.scaffolder.plugin.FCMPlugin"/>
-					<param name="onload" value="true" />
-				</feature>
+				<param name="android-package" value="com.gae.scaffolder.plugin.FCMPlugin"/>
+				<param name="onload" value="true" />
+			</feature>
 		</config-file>
 
         <framework src="com.google.firebase:firebase-core:+" />
@@ -86,6 +86,7 @@
         <config-file target="config.xml" parent="/*">
             <feature name="FCMPlugin">
                 <param name="ios-package" value="FCMPlugin"/>
+				<param name="onload" value="true" />
             </feature>
         </config-file>
 
@@ -114,8 +115,7 @@
 		<framework src="src/ios/firebase/FirebaseCore.framework" custom="true" />
 		<framework src="src/ios/firebase/FirebaseInstanceID.framework" custom="true" />
 		<framework src="src/ios/firebase/FirebaseMessaging.framework" custom="true" />
-		<framework src="src/ios/firebase/Invites/FirebaseDynamicLinks.framework" custom="true" />
-		<framework src="src/ios/firebase/Invites/FirebaseInvites.framework" custom="true" />
+		<framework custom="true" src="src/ios/firebase/FirebaseDynamicLinks.framework" />
 
 		<framework src="src/ios/firebase/GoogleInterchangeUtilities.framework" custom="true" />
 		<framework src="src/ios/firebase/GoogleIPhoneUtilities.framework" custom="true" />

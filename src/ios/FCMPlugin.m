@@ -19,9 +19,9 @@
         [FIRApp configure];
     }
 
-    [GIDSignIn sharedInstance].clientID = [FIRApp defaultApp].options.clientID;
-    [GIDSignIn sharedInstance].uiDelegate = self;
-    [GIDSignIn sharedInstance].delegate = self;
+//    [GIDSignIn sharedInstance].clientID = [FIRApp defaultApp].options.clientID;
+//    [GIDSignIn sharedInstance].uiDelegate = self;
+//    [GIDSignIn sharedInstance].delegate = self;
 }
 
 - (void)onDynamicLink:(CDVInvokedUrlCommand *)command {
@@ -164,31 +164,31 @@ static FCMPlugin *fcmPluginInstance;
     appInForeground = YES;
 }
 
-#pragma mark GIDSignInDelegate
-- (void)signIn:(GIDSignIn *)signIn didSignInForUser:(GIDGoogleUser *)user withError:(NSError *)error {
-    if (error == nil) {
-
-    } else {
-        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:@{
-            @"type": @"signinfailure",
-            @"data": @{
-                    @"code": @(error.code),
-                    @"message": error.description
-            }
-        }];
-
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:_sendInvitationCallbackId];
-    }
-}
-
-- (void)signIn:(GIDSignIn *)signIn presentViewController:(UIViewController *)viewController {
-    self.isSigningIn = YES;
-
-    [self.viewController presentViewController:viewController animated:YES completion:nil];
-}
-
-- (void)signIn:(GIDSignIn *)signIn dismissViewController:(UIViewController *)viewController {
-    [self.viewController dismissViewControllerAnimated:YES completion:nil];
-}
+//#pragma mark GIDSignInDelegate
+//- (void)signIn:(GIDSignIn *)signIn didSignInForUser:(GIDGoogleUser *)user withError:(NSError *)error {
+//    if (error == nil) {
+//
+//    } else {
+//        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:@{
+//            @"type": @"signinfailure",
+//            @"data": @{
+//                    @"code": @(error.code),
+//                    @"message": error.description
+//            }
+//        }];
+//
+//        [self.commandDelegate sendPluginResult:pluginResult callbackId:_sendInvitationCallbackId];
+//    }
+//}
+//
+//- (void)signIn:(GIDSignIn *)signIn presentViewController:(UIViewController *)viewController {
+//    self.isSigningIn = YES;
+//
+//    [self.viewController presentViewController:viewController animated:YES completion:nil];
+//}
+//
+//- (void)signIn:(GIDSignIn *)signIn dismissViewController:(UIViewController *)viewController {
+//    [self.viewController dismissViewControllerAnimated:YES completion:nil];
+//}
 
 @end

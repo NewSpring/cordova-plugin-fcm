@@ -14,5 +14,7 @@
 
 + (void)register_for_notifications;
 + (NSData*)getLastPush;
+- (BOOL)application:(UIApplication *)application continueUserActivity:(NSUserActivity *)userActivity restorationHandler:(void (^)(NSArray *))restorationHandler;
+
 
 @end
