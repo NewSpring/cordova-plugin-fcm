@@ -88,9 +88,6 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
         // [END register_for_notifications]
     }
 
-    // [START configure_firebase]
-    [FIRApp configure];
-    // [END configure_firebase]
     // Add observer for InstanceID token refresh callback.
 		AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
     [[NSNotificationCenter defaultCenter] addObserver:appDelegate selector:@selector(tokenRefreshNotification:)

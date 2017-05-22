@@ -1,10 +1,7 @@
 #import <UIKit/UIKit.h>
 #import <Cordova/CDVPlugin.h>
 
-#import "Firebase/Firebase.h"
-
 @interface FCMPlugin : CDVPlugin
-
 
 + (FCMPlugin *) fcmPlugin;
 - (void)ready:(CDVInvokedUrlCommand*)command;

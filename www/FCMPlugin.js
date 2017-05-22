@@ -37,8 +37,8 @@ FCMPlugin.prototype.onTokenRefreshReceived = function(token){
 	console.log(token)
 }
 // FIRE READY - SHOW IOS NOTIFICATIONS AUTHORIZATION POP-UP //
-FCMPlugin.prototype.ready = function(){
-	exec(function(result){ console.log("FCMPlugin Ready OK") }, function(result){ console.log("FCMPlugin Ready ERROR") }, "FCMPlugin",'ready',[]);
+FCMPlugin.prototype.ready = function(onSuccess, onFailure){
+	exec(onSuccess, onFailure, "FCMPlugin",'ready',[]);
 }
 
 FCMPlugin.prototype.onDynamicLink = function(onSuccess, onError) {
