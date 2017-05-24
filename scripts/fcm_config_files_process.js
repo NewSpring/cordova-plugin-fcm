@@ -2,6 +2,7 @@
 'use strict';
 
 var fs = require('fs');
+var path = require('path');
 
 var getValue = function(config, name) {
     var value = config.match(new RegExp('<' + name + '>(.*?)</' + name + '>', "i"))
@@ -12,21 +13,30 @@ var getValue = function(config, name) {
     }
 }
 
-function fileExists(path) {
+function fileExists(file) {
   try  {
-    return fs.statSync(path).isFile();
+    return fs.statSync(file).isFile();
   }
   catch (e) {
     return false;
   }
 }
 
-function directoryExists(path) {
+function directoryExists(file) {
   try  {
-    return fs.statSync(path).isDirectory();
+    return fs.statSync(file).isDirectory();
   }
   catch (e) {
     return false;
+  }
+}
+
+function copyFromCwd(file) {
+  const original = path.join(process.cwd(), "../../../", file);
+  const dest = file;
+  if (fs.existsSync(original)) {
+    var contents = fs.readFileSync(original).toString();
+    fs.writeFileSync(file, contents)
   }
 }
 
@@ -34,11 +44,12 @@ var config = fs.readFileSync("config.xml").toString()
 var name = getValue(config, "name")
 
 if (directoryExists("platforms/ios")) {
-	var path = "GoogleService-Info.plist";
+	var file = "GoogleService-Info.plist";
 
-    if (fileExists( path )) {
+    copyFromCwd(file);
+    if (fileExists( file )) {
       try {
-        var contents = fs.readFileSync(path).toString();
+        var contents = fs.readFileSync(file).toString();
         fs.writeFileSync("platforms/ios/" + name + "/Resources/GoogleService-Info.plist", contents)
       } catch(err) {
         process.stdout.write(err);
@@ -50,11 +61,12 @@ if (directoryExists("platforms/ios")) {
 }
 
 if (directoryExists("platforms/android")) {
-	var path = "google-services.json";
+	var file = "google-services.json";
 
-    if (fileExists( path )) {
+    copyFromCwd(file);
+    if (fileExists( file )) {
       try {
-        var contents = fs.readFileSync(path).toString();
+        var contents = fs.readFileSync(file).toString();
         fs.writeFileSync("platforms/android/google-services.json", contents);
 
         var json = JSON.parse(contents);
